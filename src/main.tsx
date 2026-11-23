@@ -11,6 +11,8 @@ import { PopulationView } from './PopulationView.tsx';
 import { formatNumber as display, formatCoordinates } from './display.ts';
 import { SchemaTracker } from './SchemaTracker.tsx';
 import { describeSchema, matchesSchema } from './ga/schema.ts';
+import { SchemaExperiment } from './SchemaExperiment.tsx';
+import { ElitismComparison } from './ElitismComparison.tsx';
 import { ScoreHistory } from './ScoreHistory.tsx';
 import './style.css';
 
@@ -69,6 +71,9 @@ function App() {
     .find(event => event.type === 'evaluate' || event.type === 'replace');
   const population = latestPopulation?.population ?? [];
   const candidate = population[selected];
+  const scoredSource = visibleEvents.filter(event => event.type === 'evaluate').at(-1);
+  const initialScore = events[0].type === 'evaluate' ? events[0] : null;
+  const experimentKey = JSON.stringify(active) + (worked ? '-worked' : '-sandbox');
   const generation = current.generation + Number(current.type === 'replace');
   const check = worked ? workedCheck(current) : null;
   const threshold = current.type === 'crossover' ? active.crossoverProbability
@@ -147,7 +152,14 @@ function App() {
         </div>
         <SchemaTracker pattern={pattern} defaultPattern={exampleSchema(chromosomeLength)} length={chromosomeLength}
           event={current} population={population.map(item => item.chromosome)} onChange={setPattern} />
+        {tracked && scoredSource && <section className="experiment-panel" aria-label="Schema experiment">
+          <SchemaExperiment key={experimentKey + scoredSource.generation + tracked} problem={problem}
+            population={scoredSource.population.map(item => item.chromosome)} generation={scoredSource.generation}
+            pattern={tracked} settings={active} seed={active.seed} />
+        </section>}
         <ScoreHistory events={visibleEvents} goal={problem.goal} />
+        {!worked && initialScore && <ElitismComparison key={experimentKey} problem={problem}
+          initial={initialScore.population.map(item => item.chromosome)} settings={active} seed={active.seed} />}
       </section>
       <aside className="inspector" aria-labelledby="inspect-title">
         <span className="eyebrow">Candidate inspector</span>

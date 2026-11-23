@@ -20,3 +20,5 @@ Load worked example to check the first reproduction round of single-variable Exa
 The tests check the lecture values and include mixed segment lengths, fractional steps, negative bounds, and negative objective scores.
 
 The Schema Tracker accepts a chromosome-length pattern of 0, 1, and * characters. It reports order, defining length, the number of possible matching strings, and observed matches at each stage. Expand Inspect the matches to see the strings before and after crossover or mutation.
+
+Use Test the schema theorem to repeat one generation from the current scored population, with elitism off. The experiment shows an observed match histogram and, for roulette with positive total fitness, the theorem’s expected lower bound. Use the diversity history and the paired elitism comparison to see how a run can settle or lose variety.

@@ -13,6 +13,6 @@ npm test
 npm run build
 ```
 
-The lab displays a fixed starting population from the single-variable minimization lesson. Select a chromosome or a point on the number line to inspect its binary representation, objective score, and roulette fitness. The engine also supports concatenated chromosomes with independent bounds and bit lengths. Selection, parameter controls, and playback are subsequent milestones.
+The lab displays a fixed starting population from the single-variable minimization lesson. Select a chromosome or a point on the number line to inspect its binary representation, objective score, and roulette fitness. The engine also supports concatenated chromosomes with independent bounds and bit lengths. The selection panel uses a repeatable seed to build a mating pool with roulette or binary tournaments. Click a parent row to inspect the winning source chromosome. Roulette uses equal slices when all fitness weights are zero. Reproduction and playback are subsequent milestones.
 
 The tests check the lecture values and include mixed segment lengths, fractional steps, negative bounds, and negative objective scores.

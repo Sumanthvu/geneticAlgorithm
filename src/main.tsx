@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { singleVariableMinimum } from './ga/problems.ts';
+import { SelectionPanel } from './SelectionPanel.tsx';
+import type { SelectionMethod } from './ga/scoring.ts';
 import { evaluateChromosome } from './ga/scoring.ts';
 import './style.css';
 
@@ -16,6 +18,7 @@ function Bits({ bits }: { bits: string }) {
 }
 
 function App() {
+  const [method, setMethod] = useState<SelectionMethod>(problem.selection);
   const [selected, setSelected] = useState(0);
   const candidate = population[selected];
 
@@ -55,6 +58,7 @@ function App() {
             <Bits bits={item.bits} /><span aria-hidden="true">{item.value}</span><span aria-hidden="true">{item.score}</span>
           </button>)}
         </div>
+        <SelectionPanel population={population} goal={problem.goal} method={method} onMethodChange={setMethod} onInspect={setSelected} />
       </section>
       <aside className="inspector" aria-labelledby="inspect-title">
         <span className="eyebrow">Candidate inspector</span>
@@ -67,8 +71,8 @@ function App() {
           </div>
           <div className="readout"><span>Decoded value</span><strong>{candidate.value}</strong></div>
           <div className="readout"><span>Objective penalty</span><strong>{candidate.score}</strong></div>
-          <div className="readout"><span>Roulette fitness</span><strong>{candidate.fitness.toFixed(4)}</strong></div>
-          <details><summary>Show the calculation</summary><code>{candidate.value}² − 8 × {candidate.value} + 20 = {candidate.score}</code><code>1 / (1 + {candidate.score}) ≈ {candidate.fitness.toFixed(4)}</code></details>
+          {method === "roulette" && <div className="readout"><span>Roulette fitness</span><strong>{candidate.fitness.toFixed(4)}</strong></div>}
+          <details><summary>Show the calculation</summary><code>{candidate.value}² − 8 × {candidate.value} + 20 = {candidate.score}</code>{method === "roulette" && <code>1 / (1 + {candidate.score}) ≈ {candidate.fitness.toFixed(4)}</code>}</details>
         </div>
       </aside>
     </main>

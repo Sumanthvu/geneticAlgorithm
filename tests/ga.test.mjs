@@ -46,3 +46,29 @@ test('scores the lecture three-variable optimum', () => {
   assert.equal(candidate.fitness, 1);
   assert.equal(searchSpaceSize(threeVariableMinimum.variables), 4096n);
 });
+import { seededRandom, selectRoulette, selectTournament } from '../src/ga/selection.ts';
+
+test('replays the lecture roulette endpoints and parent order', () => {
+  const population = ['0111', '1010', '0001', '1000'].map(bits => evaluateChromosome(bits, singleVariableMinimum));
+  const draws = [0.921, 0.694, 0.437, 0.995].values();
+  const { slices, picks } = selectRoulette(population, () => draws.next().value);
+  assert.deepEqual(slices.map(slice => slice.end.toFixed(4)), ['0.3324', '0.4459', '0.7784', '1.0000']);
+  assert.deepEqual(picks.map(pick => pick.chromosome), ['1000', '0001', '1010', '1000']);
+});
+
+test('tournament replays lecture matches with replacement and negative scores', () => {
+  const population = ['10010100', '00001111', '10110000', '11010110'].map(bits => evaluateChromosome(bits, twoVariableTournament));
+  const draws = [0.477, 0.917, 0.189, 0.258, 0.248, 0.049, 0.674, 0.817].values();
+  const picks = selectTournament(population, 'maximize', () => draws.next().value);
+  assert.deepEqual(picks.map(pick => pick.winner), [3, 0, 0, 3]);
+  assert.deepEqual([picks[2].first, picks[2].second], [0, 0]);
+});
+
+test('uses repeatable draws and handles zero roulette weights', () => {
+  const population = [{ chromosome: '0', score: 0, fitness: 0 }, { chromosome: '1', score: 0, fitness: 1 }];
+  assert.deepEqual(selectRoulette(population, seededRandom(42)), selectRoulette(population, seededRandom(42)));
+  assert.equal(selectRoulette(population, () => 0).picks[0].winner, 1);
+  const allZero = population.map(candidate => ({ ...candidate, fitness: 0 }));
+  assert.deepEqual(selectRoulette(allZero, () => 0.75).slices.map(slice => slice.probability), [0.5, 0.5]);
+  assert.equal(selectRoulette(allZero, () => 0.75).picks[0].winner, 1);
+});

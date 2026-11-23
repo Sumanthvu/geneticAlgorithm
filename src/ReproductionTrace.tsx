@@ -34,8 +34,8 @@ export function ReproductionTrace({ event }: { event: ReproductionEvent }) {
       </section>;
     case 'stop':
       return <section className="reproduction" aria-label="Run result">
-        <div className="readout"><span>Best in the final population</span><strong>{event.bestFinal.chromosome} · penalty {event.bestFinal.score}</strong></div>
-        <div className="readout"><span>Best seen during the run</span><strong>{event.bestSeen.chromosome} · penalty {event.bestSeen.score}</strong></div>
+        <div className="readout"><span>Best in the final population</span><strong>{event.bestFinal.chromosome} · score {event.bestFinal.score}</strong></div>
+        <div className="readout"><span>Best seen during the run</span><strong>{event.bestSeen.chromosome} · score {event.bestSeen.score}</strong></div>
         <p>Scored {event.generation} populations, including the starting population.</p>
       </section>;
   }

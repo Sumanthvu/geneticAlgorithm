@@ -58,3 +58,15 @@ test('copies the unpaired parent and supports chromosomes with no possible cut',
   assert.equal(result.unpaired, 2);
   assert.deepEqual(result.children, ['1', '0', '1']);
 });
+
+test('the in-app worked example passes its manual checkpoints at every stage', async () => {
+  const { workedCheck, workedExample } = await import('../src/ga/lessons.ts');
+  const events = workedExample();
+  assert.equal(events.length, 7);
+  for (const event of events) {
+    const check = workedCheck(event);
+    assert.equal(check.actual, check.expected, check.label);
+  }
+
+  assert.equal(events.at(-1).bestFinal.values[0], 4);
+});

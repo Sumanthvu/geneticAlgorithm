@@ -13,6 +13,8 @@ npm test
 npm run build
 ```
 
-The lab displays a fixed starting population from the single-variable minimization lesson. Select a chromosome or a point on the number line to inspect its binary representation, objective score, and roulette fitness. The engine also supports concatenated chromosomes with independent bounds and bit lengths. The selection panel uses a repeatable seed to build a mating pool with roulette or binary tournaments. Click a parent row to inspect the winning source chromosome. Roulette uses equal slices when all fitness weights are zero. Use Play, Pause, Step, Back, and Reset to inspect the same recorded run. The default lesson scores three populations, including the starting one. Changing the selection method, random seed, or elitism starts a new trace. The engine also supports counting by rounds of reproduction.
+The sandbox offers four single-variable lecture problems. Choose a problem, edit the run settings, and select Apply settings. Playback uses a repeatable event trace. The number line shows representable spacing and candidate positions, and Score history records the best and average objective score in each evaluated population.
+
+Load worked example to check the first reproduction round of single-variable Example 1. It uses the printed starting population, roulette draws, cut positions, and mutation outcomes. Unlisted non-flip draws are filled in above the threshold, and the cut draws are chosen to produce the printed positions. Each stage compares the simulated result with the hand calculation.
 
 The tests check the lecture values and include mixed segment lengths, fractional steps, negative bounds, and negative objective scores.

@@ -131,3 +131,34 @@ footer { width: min(1440px, 100%); margin: auto; padding: 0 clamp(22px, 5vw, 72p
 @media (max-width: 640px) {
   .transport, .stage .stage-explanation, .stage > .reproduction { padding-inline: 13px; }
 }
+
+.verify-button, .apply-run { border: 1px solid var(--accent); border-radius: 3px; padding: 7px 10px; cursor: pointer; }
+.verify-button { color: var(--accent); background: var(--paper); }
+.apply-run { color: white; background: var(--accent); }
+.run-options-form { display: grid; gap: 8px; }
+.run-options-form label { display: grid; gap: 4px; min-width: 0; }
+.run-options-form :is(input, select) { min-width: 0; width: 100%; }
+.run-options-form .elitism-control { display: flex; }
+.run-options-form .elitism-control input { width: auto; }
+.number-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.worked-check, .history { padding: 14px 22px; border-top: 1px solid var(--border); }
+.worked-check { background: var(--active); font-size: .875rem; overflow-wrap: anywhere; }
+.worked-check dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-top: 8px; }
+.history h3 { margin: 0; font-size: 1rem; }
+.history p { margin: 6px 0; font-size: .875rem; }
+.history .slice-table { margin: 8px 0 0; }
+.history-plot { width: 40%; }
+.history-plot div { position: relative; border-top: 1px solid var(--border); }
+.history-plot i { position: absolute; top: -4px; width: 8px; height: 8px; transform: translateX(-50%); border-radius: 50%; background: var(--accent); }
+.history-plot i + i { background: var(--paper); border: 1px solid var(--accent); width: 10px; height: 10px; top: -5px; }
+.ticks { position: relative; display: block; height: 28px; margin-inline: 0; }
+.ticks span { position: absolute; width: max-content; transform: translateX(-50%); font-size: .65rem; }
+.point[aria-pressed="true"] { z-index: 1; }
+.bits, .weighted div { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; width: 100%; max-width: 12rem; font-size: .75rem; }
+.weighted { width: 100%; max-width: 12rem; }
+.candidate > span { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .worked-check, .history { padding-inline: 13px; }
+  .ticks span:nth-child(even):not(:last-child) { visibility: hidden; }
+  .row { grid-template-columns: minmax(112px, 1.7fr) minmax(0, 1fr) minmax(0, 1fr); }
+}

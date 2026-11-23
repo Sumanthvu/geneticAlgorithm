@@ -2,18 +2,54 @@
 
 A browser-based teaching lab for **binary genetic algorithms**. Follow a run one decision at a time, see the exact values used by each operator, and check a worked round against a hand calculation.
 
+## Features
+
+| Feature | What you can explore |
+| --- | --- |
+| Problem sandbox | Choose from nine lecture problems covering single-variable and multivariable optimization. Edit the search bounds, bit lengths, population, seed, operator probabilities, elitism, and stopping rule. |
+| Step-by-step workbench | Play, pause, step, reset, or jump to a specific generation and operation. Plain-language explanations follow evaluation, parent selection, crossover, mutation, and replacement. |
+| Candidate inspector | See how a binary chromosome decodes into one or more variable values. Objective plots and heatmaps show where candidates land in the search space. |
+| Operator traces | Follow roulette-wheel draws or tournament brackets, then inspect the crossover cuts and mutation flips that produce the next population. |
+| Schema experiments | Track a bit pattern through a run and compare the schema theorem’s lower bound with the average count from repeated trials. |
+| Run analysis | Compare the winner of the final generation, the best candidate seen, the best point the encoding can represent, and the mathematical optimum. Review score and diversity history and compare runs with and without elitism. |
+| Worked-example verification | Replay a lecture example with expected and calculated values shown side by side at each checkpoint. |
+
+The lab runs entirely in the browser and is built with React, TypeScript, and Vite.
+
 ## Run locally
 
-Use Node.js 22 and npm.
+Use Node.js 22 and npm. From the repository root, run:
 
 ```sh
 npm ci
-npm test
-npm run build
 npm run dev
 ```
 
-Open the local URL printed by Vite. The production build writes static files to `dist/`.
+Open the URL printed by Vite. To run the automated checks and preview the production build:
+
+```sh
+npm test
+npm run build
+npm run preview
+```
+
+## Deploy on Vercel
+
+1. Sign in to Vercel with GitHub and choose **Add New → Project**.
+2. Import **Sumanthvu/geneticAlgorithm**. If the repository is missing from the list, grant the Vercel GitHub integration access to it.
+3. Use the settings below. Vercel can fill in the Vite defaults automatically.
+4. Select **Deploy**. Open the URL Vercel provides and try **Load worked example → Step** to check the live site before sharing it.
+
+| Setting | Value |
+| --- | --- |
+| Framework preset | Vite |
+| Root directory | Repository root |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Environment variables | None required |
+| Production branch | `main` |
+
+After GitHub is connected, pushes to the production branch trigger a new production deployment. [Vercel Git deployment guide](https://vercel.com/docs/git)
 
 ## Assignment demonstration
 

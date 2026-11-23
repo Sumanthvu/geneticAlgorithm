@@ -37,8 +37,8 @@ export function SchemaTracker({ pattern, defaultPattern, length, event, populati
     {!schema && <p className="schema-error" id={`${id}-error`}>Enter exactly {length} characters using only 0, 1, or *.</p>}
     {schema && summary && <>
       <dl className="schema-stats">
-        <div><dt>Order</dt><dd>{schema.order} fixed bits</dd></div>
-        <div><dt>Defining length</dt><dd>{schema.definingLength} gaps</dd></div>
+        <div><dt>Order</dt><dd>{schema.order} fixed {schema.order === 1 ? "bit" : "bits"}</dd></div>
+        <div><dt>Defining length</dt><dd>{schema.definingLength} {schema.definingLength === 1 ? "gap" : "gaps"}</dd></div>
         <div><dt>Possible strings</dt><dd>{schema.matchingStrings.toLocaleString()}</dd></div>
       </dl>
       <div className="schema-count">

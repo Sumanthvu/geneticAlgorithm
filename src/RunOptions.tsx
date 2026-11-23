@@ -6,6 +6,7 @@ import type { RunSettings } from './ga/simulation.ts';
 export interface RunConfig extends RunSettings {
   lesson: number;
   bits: number[];
+  bounds: { min: number; max: number }[];
   size: number;
   seed: number;
   method: SelectionMethod;
@@ -20,10 +21,18 @@ interface Props {
 
 export function RunOptions({ config, worked, onApply, onWorked }: Props) {
   const [draft, setDraft] = useState(config);
-  const update = (patch: Partial<RunConfig>) => setDraft(value => ({ ...value, ...patch }));
+  const [error, setError] = useState("");
+  function update(patch: Partial<RunConfig>) {
+    setError("");
+    setDraft(value => ({ ...value, ...patch }));
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (draft.bounds.some(({ min, max }) => !Number.isFinite(min) || !Number.isFinite(max) || max - min < 0.000001)) {
+      setError("Each upper bound must be at least 0.000001 above its lower bound.");
+      return;
+    }
     onApply(draft);
   }
 
@@ -32,10 +41,12 @@ export function RunOptions({ config, worked, onApply, onWorked }: Props) {
       {worked ? 'Return to sandbox' : 'Load worked example'}
     </button>
     {worked ? <p className="selection-note">Lecture Example 1, first round. The cut positions and flips are fixed for verification.</p> :
+      <details className="settings-disclosure" open={window.matchMedia("(min-width: 1001px)").matches || undefined}>
+      <summary>Run settings</summary>
       <form className="run-options-form" onSubmit={submit}>
         <label>Problem<select value={draft.lesson} onChange={event => {
           const lesson = Number(event.target.value);
-          update({ lesson, method: lessons[lesson].problem.selection, bits: lessons[lesson].problem.variables.map(variable => variable.bits) });
+          update({ lesson, method: lessons[lesson].problem.selection, bits: lessons[lesson].problem.variables.map(variable => variable.bits), bounds: lessons[lesson].problem.variables.map(({ min, max }) => ({ min, max })) });
         }}>
           {lessons.map((lesson, index) => <option key={lesson.problem.id} value={index}>{lesson.problem.title}</option>)}
         </select></label>
@@ -52,6 +63,19 @@ export function RunOptions({ config, worked, onApply, onWorked }: Props) {
           <label>Crossover<input type="number" min="0" max="1" step="any" required value={Number.isNaN(draft.crossoverProbability) ? "" : draft.crossoverProbability} onChange={event => update({ crossoverProbability: event.target.valueAsNumber })} /></label>
           <label>Mutation<input type="number" min="0" max="1" step="any" required value={Number.isNaN(draft.mutationProbability) ? "" : draft.mutationProbability} onChange={event => update({ mutationProbability: event.target.valueAsNumber })} /></label>
         </div>
+        <details className="bounds-disclosure" onInvalid={event => { event.currentTarget.open = true; }}>
+          <summary>Variable bounds</summary>
+          {draft.bounds.map((bound, index) => <div className="number-fields" key={index}>
+            {(["min", "max"] as const).map(side => <label key={side}>
+              {lessons[draft.lesson].problem.variables[index].name} {side === "min" ? "lower" : "upper"}
+              <input type="number" step="any" required min="-10000" max="10000"
+                value={Number.isNaN(bound[side]) ? "" : bound[side]} onChange={event => update({
+                  bounds: draft.bounds.map((previous, slot) => slot === index ? { ...previous, [side]: event.target.valueAsNumber } : previous),
+                })} />
+            </label>)}
+          </div>)}
+        </details>
+        {error && <p className="schema-error" role="alert">{error}</p>}
         <label>Stop after<select value={draft.count} onChange={event => update({
           count: event.target.value === 'reproduction-rounds' ? 'reproduction-rounds' : 'scored-populations',
           limit: Math.max(1, draft.limit),
@@ -65,6 +89,7 @@ export function RunOptions({ config, worked, onApply, onWorked }: Props) {
         </div>
         <label className="elitism-control"><input type="checkbox" checked={draft.elitism} onChange={event => update({ elitism: event.target.checked })} /> Enable elitism</label>
         <button type="submit" className="apply-run">Apply settings</button>
-      </form>}
+      </form>
+      </details>}
   </div>;
 }

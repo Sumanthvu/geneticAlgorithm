@@ -1,9 +1,13 @@
 import { singleVariableMinimum, twoVariableMinimum, twoVariableTournament, threeVariableMinimum } from './problems.ts';
-import type { Problem } from './scoring.ts';
+import type { Problem, SelectionMethod } from './scoring.ts';
+import type { Variable } from './encoding.ts';
+import { encodeChromosome } from './encoding.ts';
+import { evaluateChromosome } from './scoring.ts';
 import { runSimulation, type SimulationEvent } from './simulation.ts';
 
 interface Lesson {
   problem: Problem;
+  optimum: readonly number[];
   equation: string;
   substitute: (...values: string[]) => string;
 }
@@ -11,6 +15,7 @@ interface Lesson {
 export const lessons: readonly Lesson[] = [
   {
     problem: singleVariableMinimum,
+    optimum: [4],
     equation: 'x² − 8x + 20',
     substitute: x => `(${x})² − 8 × (${x}) + 20`,
   },
@@ -20,6 +25,7 @@ export const lessons: readonly Lesson[] = [
       variables: [{ name: 'x', min: -8, max: 7, bits: 4 }],
       objective: ([x]) => (x + 1) ** 2 + 2, objectiveFloor: 2,
     },
+    optimum: [-1],
     equation: '(x + 1)² + 2',
     substitute: x => `(${x} + 1)² + 2`,
   },
@@ -28,6 +34,7 @@ export const lessons: readonly Lesson[] = [
       ...singleVariableMinimum, id: 'positive-maximum', title: 'Find the maximum',
       goal: 'maximize', objective: ([x]) => x * (15 - x), objectiveFloor: 0,
     },
+    optimum: [7.5],
     equation: 'x(15 − x)',
     substitute: x => `(${x}) × (15 − (${x}))`,
   },
@@ -37,11 +44,13 @@ export const lessons: readonly Lesson[] = [
       variables: [{ name: 'x', min: -8, max: 7, bits: 4 }],
       goal: 'maximize', objective: ([x]) => 51 - (x - 1) ** 2, objectiveFloor: -30,
     },
+    optimum: [1],
     equation: '51 − (x − 1)²',
     substitute: x => `51 − (${x} − 1)²`,
   },
   {
     problem: twoVariableMinimum,
+    optimum: [3, 5],
     equation: '(x₁ − 3)² + (x₂ − 5)² + 2',
     substitute: (x, y) => `(${x} − 3)² + (${y} − 5)² + 2`,
   },
@@ -51,6 +60,7 @@ export const lessons: readonly Lesson[] = [
       variables: twoVariableTournament.variables,
       objective: ([x, y]) => (x + 1) ** 2 + (y - 2) ** 2 + 5, objectiveFloor: 5,
     },
+    optimum: [-1, 2],
     equation: '(x₁ + 1)² + (x₂ − 2)² + 5',
     substitute: (x, y) => `(${x} + 1)² + (${y} − 2)² + 5`,
   },
@@ -59,20 +69,41 @@ export const lessons: readonly Lesson[] = [
       ...twoVariableMinimum, id: 'two-variable-maximum', title: 'Maximize a pair',
       goal: 'maximize', objective: ([x, y]) => x * (15 - x) + y * (15 - y), objectiveFloor: 0,
     },
+    optimum: [7.5, 7.5],
     equation: 'x₁(15 − x₁) + x₂(15 − x₂)',
     substitute: (x, y) => `${x}(15 − (${x})) + ${y}(15 − (${y}))`,
   },
   {
     problem: twoVariableTournament,
+    optimum: [1, -2],
     equation: '50 − (x₁ − 1)² − (x₂ + 2)²',
     substitute: (x, y) => `50 − (${x} − 1)² − (${y} + 2)²`,
   },
   {
     problem: threeVariableMinimum,
+    optimum: [2, 4, 6],
     equation: '(x₁ − 2)² + (x₂ − 4)² + (x₃ − 6)²',
     substitute: (x, y, z) => `(${x} − 2)² + (${y} − 4)² + (${z} − 6)²`,
   },
 ];
+
+export function configureLesson(lesson: Lesson, variables: readonly Variable[], selection: SelectionMethod): Problem {
+  const problem = { ...lesson.problem, variables, selection };
+  if (problem.goal === "minimize") return problem;
+
+  // The maximum lessons are concave quadratics. A minimum on the box is at a corner.
+  const corners = variables.reduce<number[][]>((points, variable) =>
+    points.flatMap(point => [[...point, variable.min], [...point, variable.max]]), [[]]);
+  return { ...problem, objectiveFloor: Math.min(...corners.map(problem.objective)) };
+}
+
+export function lessonBenchmarks(lesson: Lesson, problem: Problem) {
+  // These presets are separable quadratics, so each coordinate can be optimized independently.
+  const values = problem.variables.map(({ min, max }, index) => Math.min(max, Math.max(min, lesson.optimum[index])));
+  const continuous = { values, score: problem.objective(values) };
+  const grid = evaluateChromosome(encodeChromosome(values, problem.variables), problem);
+  return { continuous, grid };
+}
 
 export const workedInitial = ['0111', '1010', '0001', '1000'];
 

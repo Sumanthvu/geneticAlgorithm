@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { lessons, workedCheck, workedExample, workedInitial } from './ga/lessons.ts';
+import { configureLesson, lessonBenchmarks, lessons, workedCheck, workedExample, workedInitial } from './ga/lessons.ts';
 import { stepSize, searchSpaceSize } from './ga/encoding.ts';
 import { seededRandom } from './ga/selection.ts';
 import { runSimulation, type SimulationEvent } from './ga/simulation.ts';
@@ -17,7 +17,7 @@ import { ScoreHistory } from './ScoreHistory.tsx';
 import './style.css';
 
 const defaultConfig: RunConfig = {
-  lesson: 0, bits: [4], size: 4, seed: 42, method: 'roulette', elitism: false,
+  lesson: 0, bits: [4], bounds: [{ min: 0, max: 15 }], size: 4, seed: 42, method: 'roulette', elitism: false,
   limit: 3, count: 'scored-populations', crossoverProbability: 0.8, mutationProbability: 0.05,
 };
 const exampleSchema = (length: number) => "01".slice(0, length).padEnd(length, "*");
@@ -45,10 +45,9 @@ function App() {
   const [playing, setPlaying] = useState(false);
   const active = worked ? defaultConfig : config;
   const lesson = lessons[active.lesson];
-  const problem = useMemo(() => ({ ...lesson.problem,
-    variables: lesson.problem.variables.map((variable, index) => ({ ...variable, bits: active.bits[index] })),
-    selection: active.method,
-  }), [lesson, active]);
+  const problem = useMemo(() => configureLesson(lesson, lesson.problem.variables.map((variable, index) => ({
+    ...variable, ...active.bounds[index], bits: active.bits[index],
+  })), active.method), [lesson, active]);
   const { variables } = problem;
   const chromosomeLength = variables.reduce((sum, variable) => sum + variable.bits, 0);
   const tracked = describeSchema(pattern, chromosomeLength)?.pattern;
@@ -57,7 +56,7 @@ function App() {
   const events = useMemo(() => {
     if (worked) return workedExample();
     const draw = seededRandom(config.seed);
-    const initial = config.lesson === 0 && config.bits[0] === 4 && config.size === 4
+    const initial = config.lesson === 0 && config.bits[0] === 4 && config.size === 4 && config.bounds[0].min === 0 && config.bounds[0].max === 15
       ? workedInitial
       : Array.from({ length: config.size }, () => variables.map(({ bits }) =>
         Math.floor(draw() * 2 ** bits).toString(2).padStart(bits, '0')).join(''));
@@ -76,6 +75,7 @@ function App() {
   const experimentKey = JSON.stringify(active) + (worked ? '-worked' : '-sandbox');
   const generation = current.generation + Number(current.type === 'replace');
   const check = worked ? workedCheck(current) : null;
+  const benchmark = current.type === "stop" ? lessonBenchmarks(lesson, problem) : null;
   const threshold = current.type === 'crossover' ? active.crossoverProbability
     : current.type === 'mutate' ? active.mutationProbability : null;
 
@@ -104,6 +104,7 @@ function App() {
   }
 
   return <>
+    <a className="skip-link" href="#playback">Skip to playback</a>
     <header className="masthead">
       <div className="wordmark"><span className="mark" aria-hidden="true">01</span> Genetic Algorithm Lab</div>
       <span className="edition">{worked ? 'Worked example' : 'Sandbox'}</span>
@@ -123,12 +124,19 @@ function App() {
           onWorked={() => { setWorked(!worked); resetForLength(worked ? config.bits : defaultConfig.bits); }} />
       </aside>
       <section className="stage" aria-labelledby="stage-title">
-        <div className="stage-heading"><div><span className="eyebrow">Generation {generation}</span><h2 id="stage-title">{title}</h2></div><span className="stage-label">Step {position + 1} of {events.length}</span></div>
-        <div className="transport" role="group" aria-label="Playback">
+        <div className="stage-heading"><div><span className="eyebrow">Generation {generation}</span><h2 id="stage-title" aria-live={playing ? "off" : "polite"}>{title}</h2></div><span className="stage-label">Step {position + 1} of {events.length}</span></div>
+        <div id="playback" className="transport" role="group" aria-label="Playback" tabIndex={-1} onKeyDown={event => {
+          if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+          if (event.key === "ArrowLeft") seek(Math.max(0, position - 1));
+          else if (event.key === "ArrowRight") seek(Math.min(last, position + 1));
+          else if (event.key === "Home") reset();
+          else return;
+          event.preventDefault();
+        }}>
           <button type="button" className="play" disabled={position === last} onClick={() => setPlaying(!playing)}>{playing ? 'Pause' : 'Play'}</button>
-          <button type="button" disabled={position === 0} onClick={() => seek(position - 1)}>Back</button>
-          <button type="button" disabled={position === last} onClick={() => seek(position + 1)}>Step</button>
-          <button type="button" onClick={reset}>Reset</button>
+          <button type="button" disabled={position === 0} aria-keyshortcuts="ArrowLeft" onClick={() => seek(position - 1)}>Back</button>
+          <button type="button" disabled={position === last} aria-keyshortcuts="ArrowRight" onClick={() => seek(position + 1)}>Step</button>
+          <button type="button" aria-keyshortcuts="Home" onClick={reset}>Reset</button>
         </div>
         <p className="stage-explanation" aria-live={playing ? 'off' : 'polite'}>{explanation}{threshold !== null && <> Threshold {threshold}.</>}</p>
         {check && <section className="worked-check" aria-label="Hand calculation check">
@@ -138,6 +146,14 @@ function App() {
         </section>}
         {current.type === 'select' && <SelectionPanel key={position} selection={current.selection} goal={problem.goal} variables={variables} schema={tracked} onInspect={setSelected} />}
         {current.type !== 'evaluate' && current.type !== 'select' && <ReproductionTrace event={current} variables={variables} />}
+        {benchmark && <section className="benchmark" aria-labelledby="benchmark-title">
+          <h3 id="benchmark-title">Compare with the optimum</h3>
+          <dl>
+            <div className="readout"><dt>Best representable on the grid</dt><dd>{formatCoordinates(benchmark.grid.values)} · score {display(benchmark.grid.score)}</dd></div>
+            <div className="readout"><dt>Best possible within the bounds</dt><dd>{formatCoordinates(benchmark.continuous.values)} · score {display(benchmark.continuous.score)}</dd></div>
+          </dl>
+          <p>The grid can only use values allowed by the bit lengths. The mathematical optimum can use any value within the bounds. When grid points tie, one is shown.</p>
+        </section>}
         <PopulationView problem={problem} population={population} selected={selected} onInspect={setSelected} />
         <div className="population" aria-label={`Generation ${generation} population`}>
           <div className="row row-header" aria-hidden="true"><span>Chromosome</span><span>{multivariable ? "Coordinates" : "Value"}</span><span>{scoreLabel}</span></div>
@@ -172,7 +188,7 @@ function App() {
               <div aria-hidden="true">{Array.from({ length: segment.bits.length }, (_, index) => <span key={index}>{2 ** (segment.bits.length - index - 1)}</span>)}</div>
               <Bits bits={segment.bits} />
             </div>
-            <span className="segment-spacing">D = {segment.position} · Gap {display(stepSize(segment.variable))}</span>
+            <span className="segment-spacing">D = {segment.position} · Gap {display(stepSize(segment.variable))} · Half-gap {display(segment.step / 2)}</span>
           </div>)}
           <div className="readout"><span>Objective {scoreLabel.toLowerCase()}</span><strong>{display(candidate.score)}</strong></div>
           {active.method === 'roulette' && <div className="readout"><span>Roulette fitness</span><strong>{display(candidate.fitness)}</strong></div>}

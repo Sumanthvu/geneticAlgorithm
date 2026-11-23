@@ -1,6 +1,6 @@
 # Genetic Algorithm Lab
 
-An interactive teaching lab for binary genetic algorithms.
+A browser-based teaching lab for **binary genetic algorithms**. Follow a run one decision at a time, see the exact values used by each operator, and check a worked round against a hand calculation.
 
 ## Run locally
 
@@ -8,17 +8,30 @@ Use Node.js 22 and npm.
 
 ```sh
 npm ci
-npm run dev
 npm test
 npm run build
+npm run dev
 ```
 
-The sandbox offers four single-variable and five multivariable lecture problems. Choose a problem, edit the run settings, and select Apply settings. Playback uses a repeatable event trace. Each variable has a separate bit-length control. One-variable runs show a number line, two-variable runs show an objective heatmap, and three-variable runs show linked coordinate rulers. Crossover and mutation traces identify the affected segments, and Score history records the best and average objective score in each evaluated population.
+Open the local URL printed by Vite. The production build writes static files to `dist/`.
 
-Load worked example to check the first reproduction round of single-variable Example 1. It uses the printed starting population, roulette draws, cut positions, and mutation outcomes. Unlisted non-flip draws are filled in above the threshold, and the cut draws are chosen to produce the printed positions. Each stage compares the simulated result with the hand calculation.
+## Assignment demonstration
 
-The tests check the lecture values and include mixed segment lengths, fractional steps, negative bounds, and negative objective scores.
+1. **Verify a worked example.** Choose **Load worked example**, then press **Step** through the first reproduction round of single-variable Example 1. Each stage displays the expected and calculated values. The starting penalties are **13, 40, 13, 20**, the selected slots are **4, 3, 2, 4**, and the new population is **1001, 0100, 1100, 1010**. The final chromosome **0100** decodes to **4**, with a penalty of **4**.
+2. **Change problems and settings.** Return to the sandbox, open **Run settings**, and pick **Find the highest-scoring pair**. Set different bit lengths for the two variables and apply the settings. The heatmap shows the objective landscape, and the inspector shows the separate binary segments. Use the tournament trace to see which competitors were drawn and why one won.
+3. **Follow a pattern.** In the worked example, track **01\*\***. One starting chromosome matches, roulette picks no matching parents, and mutation introduces one match. Expand **Inspect the matches** to see each change. Then run the schema-theorem experiment and compare the observed mean with the expected lower bound.
+4. **Compare the results.** At the end of a sandbox run, compare the best final candidate and best candidate seen with the best representable grid point and the mathematical optimum. Score and diversity history show the best and average objective score, the number of distinct chromosomes, and any stall. Use the paired elitism comparison to explore how this setting changes a run.
 
-The Schema Tracker accepts a chromosome-length pattern of 0, 1, and * characters. It reports order, defining length, the number of possible matching strings, and observed matches at each stage. Expand Inspect the matches to see the strings before and after crossover or mutation.
+With focus in the playback controls, **Left** and **Right** move one step, and **Home** resets. Tab to **Play** or **Pause** and use Enter or Space.
 
-Use Test the schema theorem to repeat one generation from the current scored population, with elitism off. The experiment shows an observed match histogram and, for roulette with positive total fitness, the theorem’s expected lower bound. Use the diversity history and the paired elitism comparison to see how a run can settle or lose variety.
+## Scope and verification
+
+- **Nine lecture presets:** four single-variable and five multivariable problems, with editable bounds, bits per variable, population, selection method, crossover and mutation rates, stopping rule, seed, and elitism.
+- **Two stopping conventions:** count scored populations, including the starting one, or count rounds of reproduction and then score the final population.
+- **Reproducibility:** the sandbox uses seeded draws. The verification replay uses the printed roulette draws, cut positions, and resulting mutation flips. It substitutes suitable draws where the notes omit a draw or show an annotation inconsistent with the printed outcome.
+- **Grid benchmarks:** the nine objectives are separable quadratics. The continuous optimum is clamped to the configured bounds, and the grid benchmark selects a nearest available mark per coordinate. When several grid points tie, one is shown.
+- **Schema theorem:** the bound is shown for roulette with positive total fitness. Repeated trials start from the same scored population and run without elitism. The bound applies to the expectation, and the histogram shows finite-sample observations.
+
+The numeric tests cover encoding, scoring, selection, crossover, mutation, generation counting, the full worked-example replay, multivariable presets, schema tracking, experiments, and the optimum comparisons.
+
+The lesson material is based on the supplied single-variable GA, multivariable GA, and schema theory lecture notes.

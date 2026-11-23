@@ -162,3 +162,24 @@ footer { width: min(1440px, 100%); margin: auto; padding: 0 clamp(22px, 5vw, 72p
   .ticks span:nth-child(even):not(:last-child) { visibility: hidden; }
   .row { grid-template-columns: minmax(112px, 1.7fr) minmax(0, 1fr) minmax(0, 1fr); }
 }
+
+.chromosome-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.chromosome-strip .bits { width: auto; flex: 1 1 65px; max-width: 12rem; }
+.chromosome-strip .bits + .bits { border-left: 2px solid #78938b; padding-left: 3px; }
+.segment-inspector { padding-bottom: 12px; }
+.segment-inspector .weighted { margin-bottom: 2px; }
+.segment-spacing, .coordinate-label, .plot-caption { font-size: .875rem; color: var(--muted); }
+.coordinate-label { display: flex; justify-content: space-between; margin: 12px 0 0; }
+.coordinate-axis + .coordinate-axis { border-top: 1px solid var(--border); }
+.coordinate-axis .track { margin-bottom: 12px; }
+.ruler .plot-caption { margin: 10px 0 0; }
+.heatmap-frame { margin: 14px 4px 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; }
+.heatmap-plane { position: relative; aspect-ratio: 1.7; border: 1px solid #78938b; }
+.heatmap-plane canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.heatmap-x, .heatmap-y { display: flex; justify-content: space-between; color: var(--muted); font: .875rem var(--mono); }
+.heatmap-x { grid-column: 2; }
+.heatmap-y { flex-direction: column; text-align: right; }
+.heatmap-point { position: absolute; transform: translate(-50%, -50%); width: 25px; height: 25px; padding: 0; border: 1px solid #172927; border-radius: 50%; background: #fafbf9; color: #172927; cursor: pointer; font: 600 .75rem var(--mono); }
+.heatmap-point[aria-pressed="true"] { background: #172927; color: white; border: 2px solid #fff; outline: 2px solid #172927; z-index: 1; }
+.heatmap-point:focus-visible { z-index: 2; }
+.trace-row code, .parent-pick code { overflow-wrap: anywhere; }

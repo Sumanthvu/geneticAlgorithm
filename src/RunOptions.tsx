@@ -5,7 +5,7 @@ import type { RunSettings } from './ga/simulation.ts';
 
 export interface RunConfig extends RunSettings {
   lesson: number;
-  bits: number;
+  bits: number[];
   size: number;
   seed: number;
   method: SelectionMethod;
@@ -35,7 +35,7 @@ export function RunOptions({ config, worked, onApply, onWorked }: Props) {
       <form className="run-options-form" onSubmit={submit}>
         <label>Problem<select value={draft.lesson} onChange={event => {
           const lesson = Number(event.target.value);
-          update({ lesson, method: lessons[lesson].problem.selection });
+          update({ lesson, method: lessons[lesson].problem.selection, bits: lessons[lesson].problem.variables.map(variable => variable.bits) });
         }}>
           {lessons.map((lesson, index) => <option key={lesson.problem.id} value={index}>{lesson.problem.title}</option>)}
         </select></label>
@@ -43,7 +43,11 @@ export function RunOptions({ config, worked, onApply, onWorked }: Props) {
           <option value="roulette">Roulette wheel</option><option value="tournament">Binary tournament</option>
         </select></label>
         <div className="number-fields">
-          <label>Bits<input type="number" min="1" max="10" step="1" required value={Number.isNaN(draft.bits) ? "" : draft.bits} onChange={event => update({ bits: event.target.valueAsNumber })} /></label>
+          {draft.bits.map((bits, index) => <label key={index}>
+            {draft.bits.length === 1 ? 'Bits' : `Bits for ${lessons[draft.lesson].problem.variables[index].name}`}
+            <input type="number" min="1" max="10" step="1" required value={Number.isNaN(bits) ? '' : bits}
+              onChange={event => update({ bits: draft.bits.map((previous, slot) => slot === index ? event.target.valueAsNumber : previous) })} />
+          </label>)}
           <label>Population<input type="number" min="2" max="20" step="1" required value={Number.isNaN(draft.size) ? "" : draft.size} onChange={event => update({ size: event.target.valueAsNumber })} /></label>
           <label>Crossover<input type="number" min="0" max="1" step="any" required value={Number.isNaN(draft.crossoverProbability) ? "" : draft.crossoverProbability} onChange={event => update({ crossoverProbability: event.target.valueAsNumber })} /></label>
           <label>Mutation<input type="number" min="0" max="1" step="any" required value={Number.isNaN(draft.mutationProbability) ? "" : draft.mutationProbability} onChange={event => update({ mutationProbability: event.target.valueAsNumber })} /></label>

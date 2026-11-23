@@ -1,11 +1,11 @@
-import { singleVariableMinimum } from './problems.ts';
+import { singleVariableMinimum, twoVariableMinimum, twoVariableTournament, threeVariableMinimum } from './problems.ts';
 import type { Problem } from './scoring.ts';
 import { runSimulation, type SimulationEvent } from './simulation.ts';
 
 interface Lesson {
   problem: Problem;
   equation: string;
-  substitute: (x: string) => string;
+  substitute: (...values: string[]) => string;
 }
 
 export const lessons: readonly Lesson[] = [
@@ -39,6 +39,38 @@ export const lessons: readonly Lesson[] = [
     },
     equation: '51 − (x − 1)²',
     substitute: x => `51 − (${x} − 1)²`,
+  },
+  {
+    problem: twoVariableMinimum,
+    equation: '(x₁ − 3)² + (x₂ − 5)² + 2',
+    substitute: (x, y) => `(${x} − 3)² + (${y} − 5)² + 2`,
+  },
+  {
+    problem: {
+      ...twoVariableMinimum, id: 'two-variable-negative-minimum', title: 'Minimize a pair across zero',
+      variables: twoVariableTournament.variables,
+      objective: ([x, y]) => (x + 1) ** 2 + (y - 2) ** 2 + 5, objectiveFloor: 5,
+    },
+    equation: '(x₁ + 1)² + (x₂ − 2)² + 5',
+    substitute: (x, y) => `(${x} + 1)² + (${y} − 2)² + 5`,
+  },
+  {
+    problem: {
+      ...twoVariableMinimum, id: 'two-variable-maximum', title: 'Maximize a pair',
+      goal: 'maximize', objective: ([x, y]) => x * (15 - x) + y * (15 - y), objectiveFloor: 0,
+    },
+    equation: 'x₁(15 − x₁) + x₂(15 − x₂)',
+    substitute: (x, y) => `${x}(15 − (${x})) + ${y}(15 − (${y}))`,
+  },
+  {
+    problem: twoVariableTournament,
+    equation: '50 − (x₁ − 1)² − (x₂ + 2)²',
+    substitute: (x, y) => `50 − (${x} − 1)² − (${y} + 2)²`,
+  },
+  {
+    problem: threeVariableMinimum,
+    equation: '(x₁ − 2)² + (x₂ − 4)² + (x₃ − 6)²',
+    substitute: (x, y, z) => `(${x} − 2)² + (${y} − 4)² + (${z} − 6)²`,
   },
 ];
 

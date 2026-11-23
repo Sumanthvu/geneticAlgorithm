@@ -70,3 +70,22 @@ test('the in-app worked example passes its manual checkpoints at every stage', a
 
   assert.equal(events.at(-1).bestFinal.values[0], 4);
 });
+
+test('multivariable lesson presets reproduce the reference objective scores', async () => {
+  const { lessons } = await import('../src/ga/lessons.ts');
+  const expected = [
+    ['two-variable-minimum', '00110101', [3, 5], 2],
+    ['two-variable-negative-minimum', '01111010', [-1, 2], 5],
+    ['two-variable-maximum', '10001000', [8, 8], 112],
+    ['two-variable-tournament', '10010110', [1, -2], 50],
+    ['three-variable-minimum', '001001000110', [2, 4, 6], 0],
+  ];
+  const { evaluateChromosome } = await import('../src/ga/scoring.ts');
+  for (const [id, chromosome, values, score] of expected) {
+    const lesson = lessons.find(lesson => lesson.problem.id === id);
+    assert.ok(lesson);
+    const candidate = evaluateChromosome(chromosome, lesson.problem);
+    assert.deepEqual(candidate.values, values);
+    assert.equal(candidate.score, score);
+  }
+});

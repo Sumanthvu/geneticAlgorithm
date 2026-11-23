@@ -1,22 +1,33 @@
 import { useId, useState } from 'react';
 import type { SimulationEvent } from './ga/simulation.ts';
+import type { Variable } from './ga/encoding.ts';
 import type { Goal } from './ga/scoring.ts';
 
 interface Props {
   selection: Extract<SimulationEvent, { type: 'select' }>['selection'];
   goal: Goal;
+  variables: readonly Variable[];
   onInspect: (index: number) => void;
 }
 
 const formatDraw = (value: number) => value.toFixed(6);
 
-export function SelectionPanel({ selection, goal, onInspect }: Props) {
+export function SelectionPanel({ selection, goal, variables, onInspect }: Props) {
   const id = useId();
   const [active, setActive] = useState(0);
   const roulette = selection?.method === 'roulette' ? selection : null;
   const tournament = selection?.method === 'tournament' ? selection.picks : null;
   const winner = (roulette?.picks ?? tournament)?.[active]?.winner;
   const roll = roulette?.picks[active]?.roll;
+
+  function splitChromosome(chromosome: string) {
+    let start = 0;
+    return variables.map(variable => {
+      const segment = chromosome.slice(start, start + variable.bits);
+      start += variable.bits;
+      return segment;
+    }).join(" │ ");
+  }
 
   function inspect(parent: number, index: number) {
     setActive(parent);
@@ -56,7 +67,7 @@ export function SelectionPanel({ selection, goal, onInspect }: Props) {
           ? `Draw ${formatDraw(pick.roll)} → slot ${pick.winner + 1}`
           : `Slots ${pick.first + 1} and ${pick.second + 1} · scores ${pick.firstScore} and ${pick.secondScore} → slot ${pick.winner + 1}`}</small>
           {'firstRoll' in pick && <small>Draws {formatDraw(pick.firstRoll)} and {formatDraw(pick.secondRoll)}</small>}</span>
-        <code>{pick.chromosome}</code>
+        <code>{splitChromosome(pick.chromosome)}</code>
       </button>)}
     </div>
   </section>;

@@ -7,22 +7,23 @@ import { runSimulation, type SimulationEvent } from './ga/simulation.ts';
 import { SelectionPanel } from './SelectionPanel.tsx';
 import { ReproductionTrace } from './ReproductionTrace.tsx';
 import { RunOptions, type RunConfig } from './RunOptions.tsx';
+import { PopulationView } from './PopulationView.tsx';
+import { formatNumber as display, formatCoordinates } from './display.ts';
 import { ScoreHistory } from './ScoreHistory.tsx';
 import './style.css';
 
 const defaultConfig: RunConfig = {
-  lesson: 0, bits: 4, size: 4, seed: 42, method: 'roulette', elitism: false,
+  lesson: 0, bits: [4], size: 4, seed: 42, method: 'roulette', elitism: false,
   limit: 3, count: 'scored-populations', crossoverProbability: 0.8, mutationProbability: 0.05,
 };
 const stageText: Record<SimulationEvent['type'], [string, string]> = {
-  evaluate: ['Decode & score', 'Read each binary chromosome as a candidate value and calculate its objective score.'],
+  evaluate: ['Decode & score', 'Decode each chromosome and calculate one objective score for its complete set of values.'],
   select: ['Select parents', 'Fill the mating pool in draw order. A candidate can be picked more than once.'],
   crossover: ['Cross the parents', 'Pair adjacent parents. A draw below the crossover rate makes the pair swap tails.'],
   mutate: ['Mutate the children', 'Check every bit separately. A draw below the mutation rate flips that bit.'],
   replace: ['Replace the population', 'The children form the next population. Elitism can carry the best old candidate forward.'],
   stop: ['Review the result', 'The run has reached its limit. Compare the final winner with the best seen across all scored populations.'],
 };
-const display = (value: number) => Number(value.toPrecision(7)).toString();
 
 function Bits({ bits }: { bits: string }) {
   return <span className="bits" aria-hidden="true">{Array.from(bits, (bit, index) =>
@@ -37,24 +38,22 @@ function App() {
   const [playing, setPlaying] = useState(false);
   const active = worked ? defaultConfig : config;
   const lesson = lessons[active.lesson];
-  const { problem } = lesson;
-  const variable = { ...problem.variables[0], bits: active.bits };
-  const spacing = stepSize(variable);
-  const rangeSteps = 2 ** variable.bits - 1;
-  const markCount = Math.min(8, rangeSteps + 1);
-  const ticks = Array.from({ length: markCount }, (_, index) => Math.round(index * rangeSteps / (markCount - 1)));
+  const problem = useMemo(() => ({ ...lesson.problem,
+    variables: lesson.problem.variables.map((variable, index) => ({ ...variable, bits: active.bits[index] })),
+    selection: active.method,
+  }), [lesson, active]);
+  const { variables } = problem;
+  const multivariable = variables.length > 1;
   const scoreLabel = problem.goal === 'minimize' ? 'Penalty' : 'Score';
   const events = useMemo(() => {
     if (worked) return workedExample();
     const draw = seededRandom(config.seed);
-    const initial = config.lesson === 0 && config.bits === 4 && config.size === 4
+    const initial = config.lesson === 0 && config.bits[0] === 4 && config.size === 4
       ? workedInitial
-      : Array.from({ length: config.size }, () =>
-        Math.floor(draw() * 2 ** config.bits).toString(2).padStart(config.bits, '0'));
-    const preset = lessons[config.lesson].problem;
-    const configured = { ...preset, variables: [{ ...preset.variables[0], bits: config.bits }], selection: config.method };
-    return runSimulation(configured, initial, config, draw);
-  }, [config, worked]);
+      : Array.from({ length: config.size }, () => variables.map(({ bits }) =>
+        Math.floor(draw() * 2 ** bits).toString(2).padStart(bits, '0')).join(''));
+    return runSimulation(problem, initial, config, draw);
+  }, [config, worked, problem, variables]);
   const last = events.length - 1;
   const current = events[position];
   const [title, explanation] = stageText[current.type];
@@ -93,14 +92,13 @@ function App() {
     </header>
     <main className="workspace">
       <aside className="lesson" aria-labelledby="lesson-title">
-        <span className="eyebrow">Single-variable search</span>
+        <span className="eyebrow">{variables.length} {multivariable ? "variables" : "variable"}</span>
         <h1 id="lesson-title">{problem.title}</h1>
-        <p>{problem.goal === 'minimize' ? 'Find the value with the lowest penalty.' : 'Find the value with the highest score.'}</p>
-        <div className="equation">f(x) = {lesson.equation}</div>
+        <p>{problem.goal === 'minimize' ? 'Find the candidate with the lowest penalty.' : 'Find the candidate with the highest score.'}</p>
+        <div className="equation">f({variables.map(variable => variable.name).join(", ")}) = {lesson.equation}</div>
         <dl className="settings">
-          <div><dt>Range</dt><dd>{variable.min} to {variable.max}</dd></div>
-          <div><dt>Search space</dt><dd>{searchSpaceSize([variable]).toString()} values</dd></div>
-          <div><dt>Gap size</dt><dd>{display(spacing)}</dd></div>
+          {variables.map(variable => <div key={variable.name}><dt>{variable.name} range</dt><dd>{variable.min} to {variable.max}</dd></div>)}
+          <div><dt>Search space</dt><dd>{searchSpaceSize(variables).toString()} {multivariable ? "candidates" : "values"}</dd></div>
         </dl>
         <RunOptions config={config} worked={worked}
           onApply={value => { setConfig(value); reset(); }}
@@ -120,23 +118,15 @@ function App() {
           <div>{check.label}</div>
           <dl><dt>Expected</dt><dd>{check.expected}</dd><dt>Calculated</dt><dd>{check.actual}</dd></dl>
         </section>}
-        {current.type === 'select' && <SelectionPanel key={position} selection={current.selection} goal={problem.goal} onInspect={setSelected} />}
-        {current.type !== 'evaluate' && current.type !== 'select' && <ReproductionTrace event={current} />}
-        <figure className="ruler">
-          <figcaption>Candidate positions <span>Decoded value <i>x</i></span></figcaption>
-          <div className="track">
-            <div className="ticks" aria-hidden="true">{ticks.map(tick => <span key={tick} style={{ left: `${tick / rangeSteps * 100}%` }}>{display(variable.min + spacing * tick)}</span>)}</div>
-            {population.map((item, index) => <button key={index} type="button"
-              className="point" style={{ left: `${item.segments[0].position / rangeSteps * 100}%` }} aria-pressed={selected === index}
-              aria-label={`Inspect slot ${index + 1}, chromosome ${item.chromosome} at x equals ${display(item.values[0])}`} onClick={() => setSelected(index)} />)}
-          </div>
-        </figure>
+        {current.type === 'select' && <SelectionPanel key={position} selection={current.selection} goal={problem.goal} variables={variables} onInspect={setSelected} />}
+        {current.type !== 'evaluate' && current.type !== 'select' && <ReproductionTrace event={current} variables={variables} />}
+        <PopulationView problem={problem} population={population} selected={selected} onInspect={setSelected} />
         <div className="population" aria-label={`Generation ${generation} population`}>
-          <div className="row row-header" aria-hidden="true"><span>Chromosome</span><span>Value</span><span>{scoreLabel}</span></div>
+          <div className="row row-header" aria-hidden="true"><span>Chromosome</span><span>{multivariable ? "Coordinates" : "Value"}</span><span>{scoreLabel}</span></div>
           {population.map((item, index) => <button key={index} className="row candidate" type="button"
             aria-pressed={selected === index} onClick={() => setSelected(index)}>
-            <span className="sr-only">{`Slot ${index + 1}, chromosome ${item.chromosome}, value ${display(item.values[0])}, ${scoreLabel.toLowerCase()} ${display(item.score)}`}</span>
-            <Bits bits={item.chromosome} /><span aria-hidden="true">{display(item.values[0])}</span><span aria-hidden="true">{display(item.score)}</span>
+            <span className="sr-only">{`Slot ${index + 1}, chromosome ${item.chromosome}, value ${formatCoordinates(item.values)}, ${scoreLabel.toLowerCase()} ${display(item.score)}`}</span>
+            <span className="chromosome-strip" aria-hidden="true">{item.segments.map(segment => <Bits bits={segment.bits} key={segment.variable.name} />)}</span><span aria-hidden="true">{formatCoordinates(item.values)}</span><span aria-hidden="true">{display(item.score)}</span>
           </button>)}
         </div>
         <ScoreHistory events={visibleEvents} goal={problem.goal} />
@@ -145,17 +135,20 @@ function App() {
         <span className="eyebrow">Candidate inspector</span>
         <h2 id="inspect-title">Read the bits</h2>
         <div aria-live={playing ? 'off' : 'polite'} aria-atomic="true">
-          <p>Add the active place values to find how many gaps to cross from the lower bound.</p>
-          <div className="weighted" aria-label={`Chromosome ${candidate.chromosome}.`}>
-            <div aria-hidden="true">{Array.from({ length: variable.bits }, (_, index) => <span key={index}>{2 ** (variable.bits - index - 1)}</span>)}</div>
-            <Bits bits={candidate.chromosome} />
-          </div>
-          <div className="readout"><span>Decoded value</span><strong>{display(candidate.values[0])}</strong></div>
+          <p>Read each segment on its own ruler. The full candidate gets one objective score.</p>
+          {candidate.segments.map(segment => <div className="segment-inspector" key={segment.variable.name}>
+            <div className="readout"><span>{segment.variable.name} decoded value</span><strong>{display(segment.value)}</strong></div>
+            <div className="weighted" aria-label={segment.variable.name + " bits " + segment.bits}>
+              <div aria-hidden="true">{Array.from({ length: segment.bits.length }, (_, index) => <span key={index}>{2 ** (segment.bits.length - index - 1)}</span>)}</div>
+              <Bits bits={segment.bits} />
+            </div>
+            <span className="segment-spacing">D = {segment.position} · Gap {display(stepSize(segment.variable))}</span>
+          </div>)}
           <div className="readout"><span>Objective {scoreLabel.toLowerCase()}</span><strong>{display(candidate.score)}</strong></div>
           {active.method === 'roulette' && <div className="readout"><span>Roulette fitness</span><strong>{display(candidate.fitness)}</strong></div>}
           <details><summary>Show the calculation</summary>
-            <code>x = {variable.min} + {candidate.segments[0].position} × {display(spacing)} ≈ {display(candidate.values[0])}</code>
-            <code>f(x) = {lesson.substitute(display(candidate.values[0]))} ≈ {display(candidate.score)}</code>
+            {candidate.segments.map(segment => <code key={segment.variable.name}>{segment.variable.name} = {segment.variable.min} + {segment.position} × {display(segment.step)} ≈ {display(segment.value)}</code>)}
+            <code>f({candidate.values.map(display).join(", ")}) = {lesson.substitute(...candidate.values.map(display))} ≈ {display(candidate.score)}</code>
             {active.method === 'roulette' && <code>{problem.goal === 'minimize'
               ? `1 / (1 + ${display(candidate.score)}) ≈ ${display(candidate.fitness)}`
               : `f(x)${problem.objectiveFloor < 0 ? ` + ${1 - problem.objectiveFloor}` : ''} ≈ ${display(candidate.fitness)}`}</code>}
@@ -163,7 +156,7 @@ function App() {
         </div>
       </aside>
     </main>
-    <footer>Genetic Algorithm Lab <span>Single-variable search</span></footer>
+    <footer>Genetic Algorithm Lab <span>{multivariable ? "Multivariable search" : "Single-variable search"}</span></footer>
   </>;
 }
 

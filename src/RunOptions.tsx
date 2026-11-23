@@ -41,7 +41,7 @@ export function RunOptions({ config, worked, onApply, onWorked }: Props) {
       {worked ? 'Return to sandbox' : 'Load worked example'}
     </button>
     {worked ? <p className="selection-note">Lecture Example 1, first round. The cut positions and flips are fixed for verification.</p> :
-      <details className="settings-disclosure" open={window.matchMedia("(min-width: 1001px)").matches || undefined}>
+      <details className="settings-disclosure">
       <summary>Run settings</summary>
       <form className="run-options-form" onSubmit={submit}>
         <label>Problem<select value={draft.lesson} onChange={event => {

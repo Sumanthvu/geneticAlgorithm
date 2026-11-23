@@ -9,20 +9,18 @@
   --border: #ccd8d3;
   --accent: #0c594e;
   --active: #e1efe7;
+  --workspace-gutter: clamp(16px, 3vw, 40px);
+  --panel-padding: 22px;
   --mono: "IBM Plex Mono", Consolas, monospace;
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 280px; }
 button { font: inherit; color: inherit; }
 button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.masthead { background: #132e29; color: #f4fbf7; padding: 18px clamp(20px, 5vw, 72px); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.masthead { background: #132e29; color: #f4fbf7; padding: 16px max(var(--workspace-gutter), calc((100% - 1520px) / 2 + var(--workspace-gutter))); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .wordmark { display: flex; align-items: center; gap: 12px; font-weight: 700; }
 .mark { font: 600 14px var(--mono); padding: 5px 7px; border: 1px solid #759b8e; color: #d3efde; }
 .edition { color: #c3d6cf; font-size: .875rem; }
-.workspace { width: min(1440px, 100%); margin: auto; padding: clamp(22px, 5vw, 72px); display: grid; grid-template-columns: minmax(205px, .8fr) minmax(320px, 1.65fr) minmax(210px, .85fr); align-items: start; }
-.lesson { padding: 20px 24px 20px 0; }
-.inspector { padding: 20px 0 20px 24px; }
-.stage { background: var(--paper); border: 1px solid var(--border); border-top: 3px solid var(--accent); }
 .stage-heading, .ruler { padding: 22px; }
 .stage-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px; }
 .eyebrow { color: var(--accent); font: 600 .875rem var(--mono); }
@@ -62,18 +60,11 @@ figcaption span { color: var(--muted); font-size: .875rem; font-weight: 400; }
 details { margin-top: 14px; font-size: .875rem; }
 summary { color: var(--accent); cursor: pointer; font-weight: 600; }
 code { display: block; margin-top: 9px; font-family: var(--mono); }
-footer { width: min(1440px, 100%); margin: auto; padding: 0 clamp(22px, 5vw, 72px) 28px; display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: .875rem; }
+footer { width: min(1520px, 100%); margin: auto; padding: 0 var(--workspace-gutter) 28px; display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: .875rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 1000px) {
-  .workspace { grid-template-columns: minmax(0, 1fr) minmax(205px, .55fr); }
-  .lesson { grid-column: 1 / -1; padding: 0 0 24px; }
-  .settings { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-}
 @media (max-width: 640px) {
-  .workspace { display: block; padding-inline: 16px; }
   .masthead { padding-inline: 16px; }
   .edition { display: none; }
-  .inspector { padding: 26px 0 0; }
   .stage-heading, .ruler { padding-inline: 13px; }
   .row { gap: 6px; }
 }
@@ -242,4 +233,90 @@ footer { width: min(1440px, 100%); margin: auto; padding: 0 clamp(22px, 5vw, 72p
 .transport button:hover:not(:disabled), .verify-button:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 @media (max-width: 640px) {
   .benchmark { padding-inline: 13px; }
+}
+
+/* Workbench layout */
+.workspace {
+  width: min(1520px, 100%);
+  margin: auto;
+  padding: 28px var(--workspace-gutter) 40px;
+  display: grid;
+  grid-template-columns: minmax(190px, 225px) minmax(0, 1fr) minmax(208px, 250px);
+  grid-template-areas: "lesson lesson lesson" "navigation stage inspector" "navigation analysis inspector";
+  align-items: start;
+  gap: 20px;
+}
+.lesson {
+  grid-area: lesson;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, .85fr);
+  align-items: end;
+  gap: 22px;
+  padding: 2px 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.lesson h1 { font-size: clamp(1.85rem, 3vw, 2.8rem); }
+.lesson-copy p { margin: 8px 0 0; }
+.lesson-context { min-width: 0; justify-self: end; width: min(100%, 32rem); }
+.lesson-context .equation { padding: 0 0 7px; border: 0; overflow-wrap: anywhere; }
+.lesson-context .settings { display: flex; flex-wrap: wrap; gap: 3px 18px; margin: 0; }
+.lesson-context .settings div { justify-content: flex-start; padding: 0; }
+.run-rail { grid-area: navigation; position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow: auto; }
+.stage-nav, .inspector { background: var(--paper); border: 1px solid var(--border); border-radius: 6px; }
+.stage-nav { padding: 15px 12px 10px; }
+.stage-nav h2 { margin: 0 4px 10px; font-size: .95rem; letter-spacing: 0; }
+.generation-picker { display: grid; gap: 4px; margin: 0 4px 12px; font-size: .875rem; color: var(--muted); }
+.generation-picker select { width: 100%; padding: 7px 8px; border: 1px solid var(--border); border-radius: 3px; background: var(--paper); color: #172927; font: inherit; }
+.stage-nav ol { display: grid; gap: 2px; list-style: none; padding: 0; margin: 0; }
+.stage-nav button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 8px; min-height: 36px; border: 1px solid transparent; border-radius: 3px; background: transparent; font-size: .875rem; text-align: left; cursor: pointer; }
+.stage-nav button:hover { background: #edf3ef; }
+.stage-nav button[aria-current="step"] { border-color: var(--border); background: var(--active); color: var(--accent); font-weight: 650; }
+.stage-indicator { flex: 0 0 7px; height: 7px; border: 1px solid #78938b; border-radius: 50%; }
+.stage-nav button[aria-current="step"] .stage-indicator { border-color: var(--accent); background: var(--accent); }
+.run-rail .run-options { margin-top: 12px; }
+.run-rail .settings-disclosure { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper); }
+.run-rail .settings-disclosure:not([open]) > summary { margin: 0; border: 0; }
+.stage { grid-area: stage; min-width: 0; }
+.stage-heading { border: 1px solid var(--border); border-radius: 6px 6px 0 0; border-top: 3px solid var(--accent); background: var(--paper); padding-block: 16px; scroll-margin-top: 12px; }
+.stage .transport { border-top: 0; border-inline: 1px solid var(--border); }
+.stage-content { background: var(--paper); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 6px 6px; }
+.stage-content > .reproduction { margin: 0; padding: 12px var(--panel-padding); border-top: 1px solid var(--border); }
+.stage-content > .reproduction p { margin: 8px 0; }
+.stage-content .row { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr) minmax(0, .75fr); }
+.stage-content .row > :last-child { text-align: right; }
+.stage-content .row-header { background: #f2f6f3; }
+.stage-content .chromosome-cell { min-width: 0; }
+.analysis-grid { grid-area: analysis; min-width: 0; display: grid; gap: 14px; }
+.analysis-panel { min-width: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--paper); }
+.analysis-panel > :first-child { border-top: 0; }
+.inspector { grid-area: inspector; position: sticky; top: 16px; padding: 16px; }
+.inspector h2 { font-size: 1.55rem; }
+.inspector code { overflow-wrap: anywhere; }
+.inspector .readout strong { text-align: right; overflow-wrap: anywhere; min-width: 0; }
+@media (min-width: 1250px) {
+  .analysis-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+@media (max-width: 1060px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(205px, .47fr);
+    grid-template-areas: "lesson lesson" "navigation navigation" "stage inspector" "analysis inspector";
+    gap: 14px;
+  }
+  .run-rail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(175px, .5fr); align-items: start; gap: 12px; position: static; max-height: none; overflow: visible; }
+  .run-rail .run-options { margin: 0; }
+  .stage-nav ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .generation-picker { width: min(100%, 13rem); }
+}
+@media (max-width: 690px) {
+  :root { --panel-padding: 13px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "lesson" "navigation" "stage" "inspector" "analysis"; padding-top: 16px; }
+  .lesson, .run-rail { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .lesson-context { justify-self: stretch; }
+  .stage-nav ol { display: flex; overflow-x: auto; padding: 3px 3px 7px; }
+  .stage-nav button { white-space: nowrap; }
+  .generation-picker { width: auto; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 8px; }
+  .run-rail .run-options { gap: 7px; }
+  .inspector { position: static; }
+  .stage-content .row { gap: 6px; }
+  .stage-content .row > span { overflow-wrap: anywhere; }
 }

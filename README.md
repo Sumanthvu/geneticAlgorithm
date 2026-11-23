@@ -22,7 +22,7 @@ Open the local URL printed by Vite. The production build writes static files to 
 3. **Follow a pattern.** In the worked example, track **01\*\***. One starting chromosome matches, roulette picks no matching parents, and mutation introduces one match. Expand **Inspect the matches** to see each change. Then run the schema-theorem experiment and compare the observed mean with the expected lower bound.
 4. **Compare the results.** At the end of a sandbox run, compare the best final candidate and best candidate seen with the best representable grid point and the mathematical optimum. Score and diversity history show the best and average objective score, the number of distinct chromosomes, and any stall. Use the paired elitism comparison to explore how this setting changes a run.
 
-With focus in the playback controls, **Left** and **Right** move one step, and **Home** resets. Tab to **Play** or **Pause** and use Enter or Space.
+Use **Run stages** to jump to a generation and select an operation directly. The workbench displays that step, and the candidate inspector stays linked to the population. With focus in the playback controls, **Left** and **Right** move one step, and **Home** resets. Tab to **Play** or **Pause** and use Enter or Space.
 
 ## Scope and verification
 

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { configureLesson, lessonBenchmarks, lessons, workedCheck, workedExample, workedInitial } from './ga/lessons.ts';
 import { stepSize, searchSpaceSize } from './ga/encoding.ts';
 import { seededRandom } from './ga/selection.ts';
 import { runSimulation, type SimulationEvent } from './ga/simulation.ts';
+import { StageNavigation } from './StageNavigation.tsx';
 import { SelectionPanel } from './SelectionPanel.tsx';
 import { ReproductionTrace } from './ReproductionTrace.tsx';
 import { RunOptions, type RunConfig } from './RunOptions.tsx';
@@ -43,6 +44,7 @@ function App() {
   const [selected, setSelected] = useState(0);
   const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const stageTop = useRef<HTMLDivElement>(null);
   const active = worked ? defaultConfig : config;
   const lesson = lessons[active.lesson];
   const problem = useMemo(() => configureLesson(lesson, lesson.problem.variables.map((variable, index) => ({
@@ -92,6 +94,14 @@ function App() {
     setPlaying(false);
     setPosition(index);
   }
+  function navigateStage(index: number) {
+    seek(index);
+    const heading = stageTop.current;
+    if (heading) {
+      const bounds = heading.getBoundingClientRect();
+      if (bounds.top < 0 || bounds.bottom > window.innerHeight) heading.scrollIntoView({ block: "start" });
+    }
+  }
   function reset() {
     seek(0);
     setSelected(0);
@@ -110,21 +120,28 @@ function App() {
       <span className="edition">{worked ? 'Worked example' : 'Sandbox'}</span>
     </header>
     <main className="workspace">
-      <aside className="lesson" aria-labelledby="lesson-title">
+      <section className="lesson" aria-labelledby="lesson-title">
+        <div className="lesson-copy">
         <span className="eyebrow">{variables.length} {multivariable ? "variables" : "variable"}</span>
         <h1 id="lesson-title">{problem.title}</h1>
         <p>{problem.goal === 'minimize' ? 'Find the candidate with the lowest penalty.' : 'Find the candidate with the highest score.'}</p>
+        </div>
+        <div className="lesson-context">
         <div className="equation">f({variables.map(variable => variable.name).join(", ")}) = {lesson.equation}</div>
         <dl className="settings">
           {variables.map(variable => <div key={variable.name}><dt>{variable.name} range</dt><dd>{variable.min} to {variable.max}</dd></div>)}
           <div><dt>Search space</dt><dd>{searchSpaceSize(variables).toString()} {multivariable ? "candidates" : "values"}</dd></div>
         </dl>
+        </div>
+      </section>
+      <aside className="run-rail" aria-label="Run navigation and settings">
+        <StageNavigation events={events} position={position} onNavigate={navigateStage} />
         <RunOptions config={config} worked={worked}
           onApply={value => { setConfig(value); resetForLength(value.bits); }}
           onWorked={() => { setWorked(!worked); resetForLength(worked ? config.bits : defaultConfig.bits); }} />
       </aside>
       <section className="stage" aria-labelledby="stage-title">
-        <div className="stage-heading"><div><span className="eyebrow">Generation {generation}</span><h2 id="stage-title" aria-live={playing ? "off" : "polite"}>{title}</h2></div><span className="stage-label">Step {position + 1} of {events.length}</span></div>
+        <div className="stage-heading" ref={stageTop}><div><span className="eyebrow">Generation {generation}</span><h2 id="stage-title" aria-live={playing ? "off" : "polite"}>{title}</h2></div><span className="stage-label">Step {position + 1} of {events.length}</span></div>
         <div id="playback" className="transport" role="group" aria-label="Playback" tabIndex={-1} onKeyDown={event => {
           if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
           if (event.key === "ArrowLeft") seek(Math.max(0, position - 1));
@@ -138,6 +155,7 @@ function App() {
           <button type="button" disabled={position === last} aria-keyshortcuts="ArrowRight" onClick={() => seek(position + 1)}>Step</button>
           <button type="button" aria-keyshortcuts="Home" onClick={reset}>Reset</button>
         </div>
+        <div className="stage-content">
         <p className="stage-explanation" aria-live={playing ? 'off' : 'polite'}>{explanation}{threshold !== null && <> Threshold {threshold}.</>}</p>
         {check && <section className="worked-check" aria-label="Hand calculation check">
           <strong>{check.expected === check.actual ? 'Matches hand calculation' : 'Check mismatch'}</strong>
@@ -166,16 +184,7 @@ function App() {
             </button>;
           })}
         </div>
-        <SchemaTracker pattern={pattern} defaultPattern={exampleSchema(chromosomeLength)} length={chromosomeLength}
-          event={current} population={population.map(item => item.chromosome)} onChange={setPattern} />
-        {tracked && scoredSource && <section className="experiment-panel" aria-label="Schema experiment">
-          <SchemaExperiment key={experimentKey + scoredSource.generation + tracked} problem={problem}
-            population={scoredSource.population.map(item => item.chromosome)} generation={scoredSource.generation}
-            pattern={tracked} settings={active} seed={active.seed} />
-        </section>}
-        <ScoreHistory events={visibleEvents} goal={problem.goal} />
-        {!worked && initialScore && <ElitismComparison key={experimentKey} problem={problem}
-          initial={initialScore.population.map(item => item.chromosome)} settings={active} seed={active.seed} />}
+        </div>
       </section>
       <aside className="inspector" aria-labelledby="inspect-title">
         <span className="eyebrow">Candidate inspector</span>
@@ -201,6 +210,22 @@ function App() {
           </details>
         </div>
       </aside>
+        <div className="analysis-grid" aria-label="Run analysis">
+        <div className="analysis-panel">
+        <SchemaTracker pattern={pattern} defaultPattern={exampleSchema(chromosomeLength)} length={chromosomeLength}
+          event={current} population={population.map(item => item.chromosome)} onChange={setPattern} />
+        {tracked && scoredSource && <section className="experiment-panel" aria-label="Schema experiment">
+          <SchemaExperiment key={experimentKey + scoredSource.generation + tracked} problem={problem}
+            population={scoredSource.population.map(item => item.chromosome)} generation={scoredSource.generation}
+            pattern={tracked} settings={active} seed={active.seed} />
+        </section>}
+        </div>
+        <div className="analysis-panel">
+        <ScoreHistory events={visibleEvents} goal={problem.goal} />
+        {!worked && initialScore && <ElitismComparison key={experimentKey} problem={problem}
+          initial={initialScore.population.map(item => item.chromosome)} settings={active} seed={active.seed} />}
+        </div>
+        </div>
     </main>
     <footer>Genetic Algorithm Lab <span>{multivariable ? "Multivariable search" : "Single-variable search"}</span></footer>
   </>;

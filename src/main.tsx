@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { singleVariableMinimum } from './ga/problems.ts';
+import { evaluateChromosome } from './ga/scoring.ts';
 import './style.css';
 
-const population = [
-  { bits: '0111', value: 7, score: 13 },
-  { bits: '1010', value: 10, score: 40 },
-  { bits: '0001', value: 1, score: 13 },
-  { bits: '1000', value: 8, score: 20 },
-];
+const problem = singleVariableMinimum;
+const [variable] = problem.variables;
+const population = ['0111', '1010', '0001', '1000']
+  .map(chromosome => evaluateChromosome(chromosome, problem))
+  .map(candidate => ({ ...candidate, bits: candidate.chromosome, value: candidate.values[0] }));
 
 function Bits({ bits }: { bits: string }) {
   return <span className="bits" aria-hidden="true">{Array.from(bits, (bit, index) =>
@@ -26,13 +27,13 @@ function App() {
     <main className="workspace">
       <aside className="lesson" aria-labelledby="lesson-title">
         <span className="eyebrow">Single-variable search</span>
-        <h1 id="lesson-title">Find the minimum</h1>
+        <h1 id="lesson-title">{problem.title}</h1>
         <p>Follow a population as it searches for a value with the lowest penalty.</p>
         <div className="equation" aria-label="f of x equals x squared minus eight x plus twenty">f(x) = x² − 8x + 20</div>
         <dl className="settings">
-          <div><dt>Range</dt><dd>0–15</dd></div>
-          <div><dt>Bits per chromosome</dt><dd>4</dd></div>
-          <div><dt>Population size</dt><dd>4</dd></div>
+          <div><dt>Range</dt><dd>{variable.min}–{variable.max}</dd></div>
+          <div><dt>Bits per chromosome</dt><dd>{variable.bits}</dd></div>
+          <div><dt>Population size</dt><dd>{population.length}</dd></div>
         </dl>
       </aside>
       <section className="stage" aria-labelledby="stage-title">
@@ -42,7 +43,7 @@ function App() {
           <div className="track">
             <div className="ticks" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <span key={index}>{index}</span>)}</div>
             {population.map((item, index) => <button key={item.bits} type="button"
-              className="point" style={{ left: `${item.value / 15 * 100}%` }} aria-pressed={selected === index}
+              className="point" style={{ left: `${(item.value - variable.min) / (variable.max - variable.min) * 100}%` }} aria-pressed={selected === index}
               aria-label={`Inspect chromosome ${item.bits} at x equals ${item.value}`} onClick={() => setSelected(index)} />)}
           </div>
         </figure>
@@ -66,7 +67,8 @@ function App() {
           </div>
           <div className="readout"><span>Decoded value</span><strong>{candidate.value}</strong></div>
           <div className="readout"><span>Objective penalty</span><strong>{candidate.score}</strong></div>
-          <details><summary>Show the calculation</summary><code>{candidate.value}² − 8 × {candidate.value} + 20 = {candidate.score}</code></details>
+          <div className="readout"><span>Roulette fitness</span><strong>{candidate.fitness.toFixed(4)}</strong></div>
+          <details><summary>Show the calculation</summary><code>{candidate.value}² − 8 × {candidate.value} + 20 = {candidate.score}</code><code>1 / (1 + {candidate.score}) ≈ {candidate.fitness.toFixed(4)}</code></details>
         </div>
       </aside>
     </main>

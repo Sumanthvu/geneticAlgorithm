@@ -9,6 +9,8 @@ import { ReproductionTrace } from './ReproductionTrace.tsx';
 import { RunOptions, type RunConfig } from './RunOptions.tsx';
 import { PopulationView } from './PopulationView.tsx';
 import { formatNumber as display, formatCoordinates } from './display.ts';
+import { SchemaTracker } from './SchemaTracker.tsx';
+import { describeSchema, matchesSchema } from './ga/schema.ts';
 import { ScoreHistory } from './ScoreHistory.tsx';
 import './style.css';
 
@@ -16,6 +18,8 @@ const defaultConfig: RunConfig = {
   lesson: 0, bits: [4], size: 4, seed: 42, method: 'roulette', elitism: false,
   limit: 3, count: 'scored-populations', crossoverProbability: 0.8, mutationProbability: 0.05,
 };
+const exampleSchema = (length: number) => "01".slice(0, length).padEnd(length, "*");
+
 const stageText: Record<SimulationEvent['type'], [string, string]> = {
   evaluate: ['Decode & score', 'Decode each chromosome and calculate one objective score for its complete set of values.'],
   select: ['Select parents', 'Fill the mating pool in draw order. A candidate can be picked more than once.'],
@@ -33,6 +37,7 @@ function Bits({ bits }: { bits: string }) {
 function App() {
   const [config, setConfig] = useState(defaultConfig);
   const [worked, setWorked] = useState(false);
+  const [pattern, setPattern] = useState(() => exampleSchema(4));
   const [selected, setSelected] = useState(0);
   const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -43,6 +48,8 @@ function App() {
     selection: active.method,
   }), [lesson, active]);
   const { variables } = problem;
+  const chromosomeLength = variables.reduce((sum, variable) => sum + variable.bits, 0);
+  const tracked = describeSchema(pattern, chromosomeLength)?.pattern;
   const multivariable = variables.length > 1;
   const scoreLabel = problem.goal === 'minimize' ? 'Penalty' : 'Score';
   const events = useMemo(() => {
@@ -85,6 +92,12 @@ function App() {
     setSelected(0);
   }
 
+  function resetForLength(bits: readonly number[]) {
+    const length = bits.reduce((sum, size) => sum + size, 0);
+    if (length !== chromosomeLength) setPattern(exampleSchema(length));
+    reset();
+  }
+
   return <>
     <header className="masthead">
       <div className="wordmark"><span className="mark" aria-hidden="true">01</span> Genetic Algorithm Lab</div>
@@ -101,8 +114,8 @@ function App() {
           <div><dt>Search space</dt><dd>{searchSpaceSize(variables).toString()} {multivariable ? "candidates" : "values"}</dd></div>
         </dl>
         <RunOptions config={config} worked={worked}
-          onApply={value => { setConfig(value); reset(); }}
-          onWorked={() => { setWorked(!worked); reset(); }} />
+          onApply={value => { setConfig(value); resetForLength(value.bits); }}
+          onWorked={() => { setWorked(!worked); resetForLength(worked ? config.bits : defaultConfig.bits); }} />
       </aside>
       <section className="stage" aria-labelledby="stage-title">
         <div className="stage-heading"><div><span className="eyebrow">Generation {generation}</span><h2 id="stage-title">{title}</h2></div><span className="stage-label">Step {position + 1} of {events.length}</span></div>
@@ -118,17 +131,22 @@ function App() {
           <div>{check.label}</div>
           <dl><dt>Expected</dt><dd>{check.expected}</dd><dt>Calculated</dt><dd>{check.actual}</dd></dl>
         </section>}
-        {current.type === 'select' && <SelectionPanel key={position} selection={current.selection} goal={problem.goal} variables={variables} onInspect={setSelected} />}
+        {current.type === 'select' && <SelectionPanel key={position} selection={current.selection} goal={problem.goal} variables={variables} schema={tracked} onInspect={setSelected} />}
         {current.type !== 'evaluate' && current.type !== 'select' && <ReproductionTrace event={current} variables={variables} />}
         <PopulationView problem={problem} population={population} selected={selected} onInspect={setSelected} />
         <div className="population" aria-label={`Generation ${generation} population`}>
           <div className="row row-header" aria-hidden="true"><span>Chromosome</span><span>{multivariable ? "Coordinates" : "Value"}</span><span>{scoreLabel}</span></div>
-          {population.map((item, index) => <button key={index} className="row candidate" type="button"
+          {population.map((item, index) => {
+            const matched = tracked !== undefined && matchesSchema(item.chromosome, tracked);
+            return <button key={index} className={matched ? "row candidate schema-match" : "row candidate"} type="button"
             aria-pressed={selected === index} onClick={() => setSelected(index)}>
             <span className="sr-only">{`Slot ${index + 1}, chromosome ${item.chromosome}, value ${formatCoordinates(item.values)}, ${scoreLabel.toLowerCase()} ${display(item.score)}`}</span>
-            <span className="chromosome-strip" aria-hidden="true">{item.segments.map(segment => <Bits bits={segment.bits} key={segment.variable.name} />)}</span><span aria-hidden="true">{formatCoordinates(item.values)}</span><span aria-hidden="true">{display(item.score)}</span>
-          </button>)}
+            <span className="chromosome-cell"><span className="chromosome-strip" aria-hidden="true">{item.segments.map(segment => <Bits bits={segment.bits} key={segment.variable.name} />)}</span>{matched && <span className="match-label">Schema match</span>}</span><span aria-hidden="true">{formatCoordinates(item.values)}</span><span aria-hidden="true">{display(item.score)}</span>
+            </button>;
+          })}
         </div>
+        <SchemaTracker pattern={pattern} defaultPattern={exampleSchema(chromosomeLength)} length={chromosomeLength}
+          event={current} population={population.map(item => item.chromosome)} onChange={setPattern} />
         <ScoreHistory events={visibleEvents} goal={problem.goal} />
       </section>
       <aside className="inspector" aria-labelledby="inspect-title">

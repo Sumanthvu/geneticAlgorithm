@@ -1,18 +1,20 @@
 import { useId, useState } from 'react';
 import type { SimulationEvent } from './ga/simulation.ts';
 import type { Variable } from './ga/encoding.ts';
+import { matchesSchema } from './ga/schema.ts';
 import type { Goal } from './ga/scoring.ts';
 
 interface Props {
   selection: Extract<SimulationEvent, { type: 'select' }>['selection'];
   goal: Goal;
   variables: readonly Variable[];
+  schema?: string;
   onInspect: (index: number) => void;
 }
 
 const formatDraw = (value: number) => value.toFixed(6);
 
-export function SelectionPanel({ selection, goal, variables, onInspect }: Props) {
+export function SelectionPanel({ selection, goal, variables, schema, onInspect }: Props) {
   const id = useId();
   const [active, setActive] = useState(0);
   const roulette = selection?.method === 'roulette' ? selection : null;
@@ -67,7 +69,7 @@ export function SelectionPanel({ selection, goal, variables, onInspect }: Props)
           ? `Draw ${formatDraw(pick.roll)} → slot ${pick.winner + 1}`
           : `Slots ${pick.first + 1} and ${pick.second + 1} · scores ${pick.firstScore} and ${pick.secondScore} → slot ${pick.winner + 1}`}</small>
           {'firstRoll' in pick && <small>Draws {formatDraw(pick.firstRoll)} and {formatDraw(pick.secondRoll)}</small>}</span>
-        <code>{splitChromosome(pick.chromosome)}</code>
+        <span><code>{splitChromosome(pick.chromosome)}</code>{schema && matchesSchema(pick.chromosome, schema) && <small className="match-label">Schema match</small>}</span>
       </button>)}
     </div>
   </section>;

@@ -18,3 +18,5 @@ The sandbox offers four single-variable and five multivariable lecture problems.
 Load worked example to check the first reproduction round of single-variable Example 1. It uses the printed starting population, roulette draws, cut positions, and mutation outcomes. Unlisted non-flip draws are filled in above the threshold, and the cut draws are chosen to produce the printed positions. Each stage compares the simulated result with the hand calculation.
 
 The tests check the lecture values and include mixed segment lengths, fractional steps, negative bounds, and negative objective scores.
+
+The Schema Tracker accepts a chromosome-length pattern of 0, 1, and * characters. It reports order, defining length, the number of possible matching strings, and observed matches at each stage. Expand Inspect the matches to see the strings before and after crossover or mutation.

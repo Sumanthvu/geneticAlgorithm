@@ -108,3 +108,11 @@ footer { width: min(1440px, 100%); margin: auto; padding: 0 clamp(22px, 5vw, 72p
 @media (max-width: 640px) {
   .selection { padding-inline: 13px; }
 }
+
+.reproduction { margin-top: 20px; }
+.reproduction details { border-top: 1px solid var(--border); padding-top: 12px; }
+.trace-row { display: grid; gap: 4px; border-top: 1px solid var(--border); padding: 9px 0; }
+.trace-row span { color: var(--muted); }
+.trace-row code { margin: 0; }
+.trace-row strong code { display: inline; margin-left: 6px; }
+.elitism-control { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; }

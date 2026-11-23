@@ -58,7 +58,7 @@ function App() {
             <Bits bits={item.bits} /><span aria-hidden="true">{item.value}</span><span aria-hidden="true">{item.score}</span>
           </button>)}
         </div>
-        <SelectionPanel population={population} goal={problem.goal} method={method} onMethodChange={setMethod} onInspect={setSelected} />
+        <SelectionPanel population={population} problem={problem} method={method} onMethodChange={setMethod} onInspect={setSelected} />
       </section>
       <aside className="inspector" aria-labelledby="inspect-title">
         <span className="eyebrow">Candidate inspector</span>

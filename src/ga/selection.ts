@@ -1,6 +1,6 @@
 import type { Goal } from './scoring.ts';
 
-type Draw = () => number;
+export type Draw = () => number;
 type Candidate = { chromosome: string; score: number; fitness: number };
 
 // Mulberry32 gives a repeatable sequence without altering Math.random.
@@ -18,7 +18,7 @@ export function seededRandom(seed: number): Draw {
   };
 }
 
-function readDraw(draw: Draw): number {
+export function readDraw(draw: Draw): number {
   const value = draw();
   if (!Number.isFinite(value) || value < 0 || value >= 1) {
     throw new RangeError('Random draws must be in [0, 1).');

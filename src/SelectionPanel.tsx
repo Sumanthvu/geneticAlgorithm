@@ -1,12 +1,14 @@
 import { useId, useState, type FormEvent } from 'react';
-import { seededRandom, selectRoulette, selectTournament } from './ga/selection.ts';
-import type { Goal, SelectionMethod } from './ga/scoring.ts';
+import { seededRandom } from './ga/selection.ts';
+import { runSimulation } from './ga/simulation.ts';
+import { ReproductionTrace } from './ReproductionTrace.tsx';
+import type { Problem, SelectionMethod } from './ga/scoring.ts';
 
 type Candidate = { chromosome: string; score: number; fitness: number };
 
 interface Props {
   population: readonly Candidate[];
-  goal: Goal;
+  problem: Problem;
   method: SelectionMethod;
   onMethodChange: (method: SelectionMethod) => void;
   onInspect: (index: number) => void;
@@ -14,13 +16,25 @@ interface Props {
 
 const formatDraw = (value: number) => value.toFixed(6);
 
-export function SelectionPanel({ population, goal, method, onMethodChange, onInspect }: Props) {
+export function SelectionPanel({ population, problem, method, onMethodChange, onInspect }: Props) {
   const id = useId();
   const [seed, setSeed] = useState(42);
   const [active, setActive] = useState(0);
-  const draw = seededRandom(seed);
-  const roulette = method === 'roulette' ? selectRoulette(population, draw) : null;
-  const tournament = method === 'tournament' ? selectTournament(population, goal, draw) : null;
+  const [elitism, setElitism] = useState(false);
+  const events = runSimulation({ ...problem, selection: method }, population.map(candidate => candidate.chromosome), {
+    limit: 1,
+    count: 'reproduction-rounds',
+    crossoverProbability: 0.8,
+    mutationProbability: 0.05,
+    elitism,
+  }, seededRandom(seed));
+  const selection = events.find(event => event.type === 'select')?.selection;
+  const crossover = events.find(event => event.type === 'crossover');
+  const mutation = events.find(event => event.type === 'mutate');
+  const replacement = events.find(event => event.type === 'replace');
+  const stop = events.find(event => event.type === 'stop');
+  const roulette = selection?.method === 'roulette' ? selection : null;
+  const tournament = selection?.method === 'tournament' ? selection.picks : null;
   const winner = (roulette?.picks ?? tournament)?.[active]?.winner;
   const roll = roulette?.picks[active]?.roll;
 
@@ -51,7 +65,7 @@ export function SelectionPanel({ population, goal, method, onMethodChange, onIns
     </div>
     <p>{roulette
       ? 'Each fitness score gets a share of the wheel. The first nonempty slice that reaches the draw supplies one parent.'
-      : `Two candidates are drawn with replacement. The ${goal === 'minimize' ? 'lower' : 'higher'} objective score wins. A tie keeps the first draw.`}</p>
+      : `Two candidates are drawn with replacement. The ${problem.goal === 'minimize' ? 'lower' : 'higher'} objective score wins. A tie keeps the first draw.`}</p>
     <form className="seed-form" onSubmit={applySeed}>
       <label htmlFor={`${id}-seed`}>Random seed</label>
       <input id={`${id}-seed`} name="seed" type="number" defaultValue={seed} min={0} max={4294967295} step={1} required />
@@ -86,5 +100,7 @@ export function SelectionPanel({ population, goal, method, onMethodChange, onIns
         <code>{pick.chromosome}</code>
       </button>)}
     </div>
+    {crossover && mutation && replacement && stop && <ReproductionTrace crossover={crossover} mutation={mutation}
+      replacement={replacement} stop={stop} elitism={elitism} onElitismChange={setElitism} />}
   </section>;
 }
